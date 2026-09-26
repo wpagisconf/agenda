@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WPAGIS 2026 Agenda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --muted:#5f6675; --faint:#8b92a0;
+  --line:#dfe3ea; --line2:#c9ced8; --accent:#1f5fa6; --accent-bg:#e7f0fa; --accent-ink:#0c447c;
+  --warn-bg:#fdf1dc; --warn-ink:#7a4a06; --now:#c2410c; --now-bg:#fff1e8;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select,input{font:inherit;color:inherit}
+header{padding:20px 20px 8px;max-width:1400px;margin:0 auto}
+h1{font-size:22px;font-weight:600;margin:0}
+.sub{color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.sub button{border:0;background:none;color:var(--accent);cursor:pointer;padding:0;font-size:13px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1400px;margin:0 auto;padding:10px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:none;padding:7px 14px;cursor:pointer;font-size:14px}
+.seg button+button{border-left:1px solid var(--line2)}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+select,input[type=search]{border:1px solid var(--line2);border-radius:8px;background:var(--card);padding:7px 10px;font-size:14px}
+input[type=search]{flex:1;min-width:180px}
+.pbtn{border:1px solid var(--line2);border-radius:8px;background:var(--card);padding:7px 12px;cursor:pointer;font-size:14px}
+.wrap{max-width:1400px;margin:0 auto;padding:16px 20px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.note{background:var(--warn-bg);color:var(--warn-ink);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:12px}
+.err{background:#fcebeb;color:#791f1f;border-radius:8px;padding:10px 12px;font-size:14px}
+/* all-day strip */
+.allday{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px}
+.allday .lbl{font-weight:600;color:var(--muted)}
+.allday .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px 12px}
+.allday .chip b{font-weight:600}
+/* grid */
+.gridwrap{overflow-x:auto}
+.ghrow{display:grid;gap:8px;min-width:640px;margin-bottom:8px}
+@media (min-width:901px){
+  .gridwrap{overflow:visible}
+  .ghrow{position:sticky;top:var(--barh,58px);z-index:4;background:var(--bg);padding:8px 0 6px;border-bottom:1px solid var(--line)}
+  .ghrow .ghead{color:var(--ink)}
+}
+.card .tm{display:flex;justify-content:space-between;gap:6px}
+.card .tm .rm{font-weight:500;color:var(--faint)}
+.skel{border-radius:var(--radius);min-height:64px;flex:1;background:linear-gradient(90deg,#eceef2 0%,#f6f7f9 50%,#eceef2 100%);background-size:200% 100%;animation:sh 1.2s linear infinite}
+@keyframes sh{from{background-position:200% 0}to{background-position:-200% 0}}
+.loadbar{display:flex;gap:10px;align-items:center;background:var(--accent-bg);color:var(--accent-ink);border-radius:8px;padding:8px 12px;font-size:13.5px;margin-bottom:12px}
+.spin{width:14px;height:14px;border:2px solid #b5d4f4;border-top-color:var(--accent);border-radius:50%;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.skel,.spin{animation:none}}
+.grid{display:grid;gap:8px;min-width:640px}
+.ghead{font-weight:600;font-size:13px;color:var(--muted);padding:0 4px 2px}
+.gtime{font-size:13px;color:var(--muted);padding-top:8px;line-height:1.3}
+.gtime b{display:block;color:var(--ink);font-weight:600}
+.gtime.now b,.gtime.now{color:var(--now)}
+.nowtag{display:inline-block;font-size:10.5px;font-weight:600;color:#fff;background:var(--now);border-radius:999px;padding:0 7px;margin-top:3px}
+.cell{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cell > .full{flex:1}
+.cell > .half{flex:1}
+.open.half{min-height:44px}
+.snote{font-size:12.5px;color:var(--accent-ink);background:#fff;border:1px dashed #85b7eb;border-radius:8px;padding:5px 10px}
+.snote b{font-weight:600}
+.nowbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--now-bg);border:1px solid #f5c4b3;color:#712b13;border-radius:8px;padding:8px 12px;font-size:13.5px;margin-bottom:12px}
+.nowbar button{border:1px solid #f0997b;background:#fff;color:#712b13;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:13px}
+.open{border:1px dashed var(--line2);border-radius:var(--radius);color:var(--faint);font-size:12px;display:flex;align-items:center;justify-content:center;min-height:64px;flex:1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:9px 11px;cursor:pointer;text-align:left;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;border-left:4px solid var(--tc,#999);transition:border-color .12s}
+.card:hover{border-color:var(--line2);border-left-color:var(--tc,#999)}
+.card.sel{outline:2px solid var(--accent);outline-offset:1px}
+.card .t{font-weight:600;font-size:13.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.card .p{font-size:12.5px;color:var(--muted);margin-top:3px}
+.card .tm{font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:3px}
+.pills{margin-top:5px;display:flex;gap:4px;flex-wrap:wrap}
+.pill{font-size:11px;padding:1px 8px;border-radius:999px;background:var(--pb,#eee);color:var(--pc,#333);font-weight:500}
+.pill.on{background:var(--warn-bg);color:var(--warn-ink)}
+.krow{background:var(--accent-bg);border:1px solid #b5d4f4;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.krow .kh{font-size:12px;color:var(--accent-ink);font-weight:600}
+.krow .kcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.krow .card{border-left-color:var(--accent)}
+/* event rows */
+.ev{border-radius:var(--radius);padding:9px 14px;font-size:13.5px;display:flex;gap:6px 14px;flex-wrap:wrap;align-items:baseline;border:1px solid transparent}
+.ev b{font-weight:600}
+.ev .w{color:inherit;opacity:.85}
+.ev .n{font-size:12.5px;opacity:.85;flex-basis:100%}
+.ev.info{background:#eef0f4;color:#2c3240;border-color:#dde1e8}
+.ev.meal{background:#fdf1dc;color:#633806;border-color:#f3dcb0}
+.ev.special{background:#eeedfe;color:#3c3489;border-color:#cecbf6}
+.ev.reserved{background:repeating-linear-gradient(135deg,#f1f2f4,#f1f2f4 8px,#e8eaee 8px,#e8eaee 16px);color:#5f6675;border-color:#dde1e8}
+.ev.brk{background:transparent;border:1px dashed #9fe1cb;color:#085041;padding:5px 14px;font-size:12.5px}
+.ev.now{outline:2px solid var(--now);outline-offset:1px}
+.gtime.small{padding-top:5px;font-size:12px}
+/* list */
+.lgroup{margin-bottom:14px}
+.lgroup h3{font-size:14px;margin:0 0 6px;color:var(--muted);font-weight:600}
+.lgroup h3.now{color:var(--now)}
+.lrow{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--tc,#999);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;cursor:pointer;width:100%;text-align:left}
+.lrow.key{background:var(--accent-bg);border-left-color:var(--accent)}
+.lrow.sel{outline:2px solid var(--accent)}
+.lrow .meta{font-size:12.5px;color:var(--muted)}
+.lrow .meta b{display:block;color:var(--ink);font-weight:600}
+.lrow .t{font-weight:600;font-size:14px;line-height:1.35}
+.lrow .p{font-size:13px;color:var(--muted)}
+.lev{margin-bottom:14px}
+/* panel */
+.panel{position:sticky;top:70px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;max-height:calc(100vh - 90px);overflow:auto}
+.panel .empty{color:var(--muted);font-size:14px}
+.panel .when{font-size:12.5px;color:var(--muted)}
+.panel h2{font-size:18px;line-height:1.3;margin:6px 0 8px;font-weight:600}
+.panel h4{font-size:13px;margin:14px 0 4px;color:var(--muted);font-weight:600}
+.panel p{margin:0;font-size:14px;white-space:pre-line}
+.panel .close{display:none}
+.kbadge{display:inline-block;font-size:11px;font-weight:600;color:#fff;background:var(--accent);border-radius:999px;padding:1px 8px;margin-bottom:4px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:14px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.foot{font-size:12px;color:var(--faint);margin-top:10px}
+#print{display:none}
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr)}
+  .panel{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:78vh;border-radius:16px 16px 0 0;z-index:20;box-shadow:0 -8px 30px rgba(0,0,0,.18);display:none}
+  .panel.openp{display:block}
+  .panel .close{display:block;position:absolute;right:10px;top:8px;border:0;background:none;font-size:22px;cursor:pointer;color:var(--muted)}
+  .bar{position:static}
+  .lrow{grid-template-columns:96px minmax(0,1fr)}
+  header,.bar-in,.wrap{padding-left:16px;padding-right:16px}
+  .pbtn{display:none}
+}
+/* print: one table per day, black and white */
+@page{size:letter portrait;margin:0.4in}
+@media print{
+  html,body{background:#fff;font-size:9pt}
+  .bar,.wrap,.sub button,#updated{display:none!important}
+  header{padding:0 0 6px}
+  h1{font-size:14pt}
+  #print{display:block}
+  .pday{page-break-after:always;break-after:page;zoom:.84}
+  .pday:last-child{page-break-after:auto;break-after:auto}
+  .pday h2{font-size:12.5pt;margin:0 0 3px}
+  .pday .pad{font-size:8.5pt;margin:0 0 6px;color:#333}
+  table.pt{width:100%;border-collapse:collapse;table-layout:fixed}
+  .pt th,.pt td{border:0.6pt solid #777;padding:2pt 3.5pt;vertical-align:top;font-size:7.3pt;line-height:1.18}
+  .pt th{background:#e6e6e6;font-weight:600;text-align:left}
+  .pt td.tcol{font-weight:600;white-space:nowrap;font-size:7pt}
+  .pt tr{page-break-inside:avoid;break-inside:avoid}
+  .pt .pi{margin-bottom:2pt}
+  .pt .pi + .pi{border-top:0.4pt dotted #999;padding-top:2pt}
+  .pt .pi b{font-weight:600}
+  .pt .pm{color:#333}
+  .pt .ptm{font-weight:600;font-size:7pt}
+  .pt tr.k td{background:#eef3f9}
+  .pt tr.e td{background:#f4f4f4}
+  .pt tr.b td{font-size:7pt;font-style:italic;padding:1pt 3.5pt}
+  .pt td.popen{color:#999;font-size:7pt;vertical-align:middle;text-align:center}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">2026 Western PA GIS Conference · Agenda</h1>
+  <div class="sub"><span id="venue">Gemmell Student Complex, PennWest Clarion</span><span>All times Eastern</span><span id="updated"></span><button id="refresh" type="button">Refresh</button></div>
+</header>
+<div class="bar"><div class="bar-in">
+  <div class="seg" id="days" role="group" aria-label="Day"></div>
+  <div class="seg" id="views" role="group" aria-label="View">
+    <button type="button" data-v="grid" aria-pressed="true">Grid</button>
+    <button type="button" data-v="list" aria-pressed="false">List</button>
+  </div>
+  <select id="room" aria-label="Room"><option value="">All rooms</option></select>
+  <select id="track" aria-label="Track"><option value="">All tracks</option></select>
+  <input type="search" id="q" placeholder="Search title, presenter, or organization" aria-label="Search">
+  <button type="button" class="pbtn" id="printbtn">Print</button>
+  <a class="pbtn" id="pdfbtn" target="_blank" rel="noopener" style="display:none;text-decoration:none;color:inherit">Printed program (PDF)</a>
+</div></div>
+<div class="wrap" id="wrap">
+  <main id="main" aria-live="polite"><div class="loadbar"><span class="spin"></span>Loading the latest sessions…</div></main>
+  <aside class="panel" id="panel"><button class="close" id="close" aria-label="Close details">×</button><div id="det"><div class="empty">Select a presentation to see its abstract and presenters.</div></div></aside>
+</div>
+<div id="print"></div>
+
+<script>
+/* ======================= CONFIGURATION: edit these ======================= */
+const CONFIG = {
+  // REST URL of the PUBLIC view's Presentations table, ending in /FeatureServer/<n>.
+  // Leave empty ("") to show the built-in demo data.
+  LAYER_URL: "https://services1.arcgis.com/PWtxnKIFOvE9zUTs/ArcGIS/rest/services/Conference_Presentations_View/FeatureServer/1",
+  TITLE: "2026 Western PA GIS Conference · Agenda",
+  VENUE: "Gemmell Student Complex, PennWest Clarion",
+  DAYS: {                               // day code: tab label, calendar date (for "Happening now")
+    "01": { label: "Thursday, Oct 22", date: "2026-10-22" },
+    "02": { label: "Friday, Oct 23",   date: "2026-10-23" }
+  },
+  // Time blocks (TimeMainSelectionAdmin codes) that are public sessions each day.
+  // Talks placed in any other block stay hidden until they are moved.
+  DAY_BLOCKS: { "01": ["01","02","03","04","05","06","07"], "02": ["01","02","03"] },
+  KEYNOTE_ROOM: "999",                  // MPR: full-width keynote row, no parallel sessions
+  REFRESH_MINUTES: 5,                   // reload the data while the page is open
+
+  // "All day" notes shown above each day's schedule
+  ALL_DAY: {
+    "01": [ { title: "Registration desk", where: "Rotunda" },
+            { title: "Snacks and refreshments", where: "MPR" },
+            { title: "Global Challenge map challenge", where: "Hallway" } ],
+    "02": [ { title: "Registration desk", where: "Rotunda" },
+            { title: "Snacks and refreshments", where: "MPR" } ]
+  },
+  // Fixed agenda items. type: info | meal | special | reserved.  time: "8:00AM" or "12:00PM-1:00PM"
+  EVENTS: [
+    { day: "01", time: "8:00AM", type: "info",    title: "Registration opens", where: "Rotunda",
+      note: "Snacks and refreshments in the MPR." },
+    { day: "01", time: "12:00PM", type: "meal",   title: "Lunch", where: "MPR",
+      note: "Keynote addresses follow in the MPR at 12:15." },
+    { day: "01", time: "4:30PM", type: "special", title: "Global Challenge prize announcement", where: "Rotunda" },
+    { day: "02", time: "8:00AM", type: "info",    title: "Registration opens", where: "Rotunda",
+      note: "Snacks and refreshments in the MPR." },
+    { day: "02", time: "12:00PM-1:00PM", type: "reserved", title: "Reserved: private meeting",
+      note: "Not open to conference attendees." }
+  ],
+  // A break row is added automatically in every gap between two session blocks
+  BREAK: { title: "Meet our exhibitors and sponsors", where: "Rotunda" },
+  // Short notes shown at the top of a session block (day + TimeMainSelectionAdmin code).
+  // To split sponsors between both keynotes, add { day: "01", block: "01", text: "A word from our sponsors" }.
+  SESSION_NOTES: [
+    { day: "01", block: "04", text: "A word from our sponsors", note: "Our sponsors introduce their organizations before the keynote addresses." }
+  ],
+  // Optional: link to the formatted printed program (e.g. the PDF exported from the Excel agenda workbook).
+  // When set, a "Printed program (PDF)" button appears next to Print.
+  PRINT_PDF_URL: "",
+
+  TRACK_COLORS: {                       // [bar, pill text, pill background]
+    "GIS Admin":  ["#1d9e75", "#085041", "#e1f5ee"],
+    "Innovation": ["#7f77dd", "#3c3489", "#eeedfe"],
+    "Field Work": ["#639922", "#27500a", "#eaf3de"]
+  },
+  OTHER_COLOR: ["#888780", "#444441", "#f1efe8"]
+};
+/* ======================================================================== */
+
+// Fallback labels, used only if the service's coded-value domains can't be read
+const FALLBACK = {
+  DaySelectionAdmin: { "01": "Thursday", "02": "Friday" },
+  RoomSelectionAdmin: { "248": "248", "250": "250", "252": "252", "555": "250-252", "999": "MPR" },
+  TimeMainSelectionAdmin: { "01": "9:00AM-9:45AM", "02": "10:00AM-10:45AM", "03": "11:00AM-11:45AM", "04": "12:00PM-1:15PM", "05": "1:30PM-2:15PM", "06": "2:30PM-3:15PM", "07": "3:30PM-4:15PM", "08": "4:30PM-5:00PM", "09": "12:00PM-1:00PM" },
+  TimeSubSelectionAdmin: { "0101": "9:00AM-9:20AM", "0102": "9:25AM-9:45AM", "0201": "10:00AM-10:20AM", "0202": "10:25AM-10:45AM", "0301": "11:00AM-11:20AM", "0302": "11:25AM-11:45AM", "0401": "12:15PM-12:35PM", "0402": "12:45PM-1:15PM", "0501": "1:30PM-1:50PM", "0502": "1:55PM-2:15PM", "0601": "2:30PM-2:50PM", "0602": "2:55PM-3:15PM", "0701": "3:30PM-3:50PM", "0702": "3:55PM-4:15PM", "0801": "4:30PM-4:45PM", "0802": "4:45PM-5:00PM", "0901": "12:00PM-12:30PM", "0902": "12:30PM-1:00PM", "0000": "Full Slot" }
+};
+
+const DEMO = [];
+
+const nowParam = (location.search + location.hash).match(/now=([\dT:-]+)/)?.[1] || "";
+const S = { day: null, view: "grid", room: "", track: "", q: "", sel: null, scrolled: false };
+let TALKS = [], DOM = {}, ROOMCOLS = [];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- time helpers ---------- */
+const toMin = (h, mi, ap) => ((+h % 12) + (ap.toUpperCase() === "PM" ? 12 : 0)) * 60 + +mi;
+const fmtMin = m => { const h = Math.floor(m / 60), mi = m % 60; return `${((h + 11) % 12) + 1}:${String(mi).padStart(2, "0")}`; };
+const ap = m => (m >= 720 ? "PM" : "AM");
+function textRange(s, e) {
+  if (e == null) return `${fmtMin(s)} ${ap(s)}`;
+  return ap(s) === ap(e) ? `${fmtMin(s)}–${fmtMin(e)} ${ap(e)}` : `${fmtMin(s)} ${ap(s)}–${fmtMin(e)} ${ap(e)}`;
+}
+// "9:00AM-9:45AM" or "8:00AM" -> {s, e, text}
+function range(label) {
+  const str = String(label || "");
+  const m = str.match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*(?:-\s*(\d{1,2}):(\d{2})\s*(AM|PM))?/i);
+  if (!m) return { s: 9999, e: 9999, text: str };
+  const s = toMin(m[1], m[2], m[3]), e = m[4] ? toMin(m[4], m[5], m[6]) : null;
+  return { s, e, text: textRange(s, e) };
+}
+function nowET() {
+  // testing: add ?now=2026-10-22T11:10 (or #now=...) to the address
+  const q = new URLSearchParams(location.search).get("now") || new URLSearchParams(location.hash.slice(1)).get("now") || (location.hash.match(/now=([\dT:-]+)/) || [])[1];
+  if (q) { const [d, t] = q.split("T"); const [h, mi] = (t || "0:0").split(":"); return { date: d, mins: +h * 60 + +mi }; }
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, mins: +p.hour * 60 + +p.minute };
+}
+const todayCode = () => { const n = nowET(); return Object.keys(CONFIG.DAYS).find(k => CONFIG.DAYS[k].date === n.date) || null; };
+const isNow = (day, s, e) => { const n = nowET(); return CONFIG.DAYS[day] && CONFIG.DAYS[day].date === n.date && n.mins >= s && n.mins < (e ?? s + 30); };
+
+const lab = (field, code) => (DOM[field] && DOM[field][code]) ?? (FALLBACK[field] || {})[code] ?? code;
+const dayLabel = d => (CONFIG.DAYS[d] && CONFIG.DAYS[d].label) || lab("DaySelectionAdmin", d);
+
+/* ---------- data ---------- */
+function norm(a) {
+  const g = k => { for (const key in a) if (key.toLowerCase() === k.toLowerCase()) return a[key]; return null; };
+  const slot = String(g("SlotID") || "").trim();
+  const parts = slot.split("-");
+  if (parts.length !== 4) return null;
+  const [day, blk, sub, room] = parts;
+  const block = range(lab("TimeMainSelectionAdmin", blk));
+  const t = sub === "0000" ? block : range(lab("TimeSubSelectionAdmin", sub));
+  const trackRaw = g("PresentationTrack") || "";
+  const track = trackRaw.toLowerCase() === "other" ? (g("PresentationTrack_other") || "Other") : (trackRaw || "Other");
+  const co = [1, 2, 3].map(i => ({ n: [g(`CoPresenter${i}FirstName`), g(`CoPresenter${i}LastName`)].filter(Boolean).join(" "), a: g(`CoPresenter${i}Affiliation`) })).filter(c => c.n);
+  return {
+    id: slot + "|" + (g("PresentationID") || g("globalid") || Math.random()), slot, day, blk, sub, room,
+    block, time: t, title: g("PresentationTitle") || "Untitled", abstract: g("PresentationAbstract") || "",
+    track, trackKey: CONFIG.TRACK_COLORS[trackRaw] ? trackRaw : "__other",
+    online: String(g("PresentationModality") || "").toLowerCase() === "online",
+    presenter: [g("MainPresenterFirstName"), g("MainPresenterLastName")].filter(Boolean).join(" "),
+    affil: g("MainPresenterAffiliation") || "", bio: g("MainPresenterBio") || "", co,
+    key: room === CONFIG.KEYNOTE_ROOM
+  };
+}
+async function getJSON(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message || "Service error");
+  return j;
+}
+const CACHE_KEY = "wpagis-agenda-cache-v1";
+const KEYBLOCKS = { "01": ["01", "04"] };   // blocks shown as keynote bands while loading
+function applyData(attrs, dom) {
+  DOM = dom || {};
+  TALKS = attrs.map(norm).filter(t => t && (CONFIG.DAY_BLOCKS[t.day] || []).includes(t.blk)).sort((a, b) => a.slot.localeCompare(b.slot));
+}
+function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); } catch (e) { return null; } }
+function writeCache(attrs, dom) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), attrs, dom })); } catch (e) {} }
+
+async function load() {
+  const demo = !CONFIG.LAYER_URL;
+  S.loading = true;
+  if (!TALKS.length) {                       // first paint: last saved copy, or the empty schedule frame
+    const c = demo ? null : readCache();
+    if (c && c.attrs) applyData(c.attrs, c.dom);
+    setup();
+  } else render();
+  try {
+    let attrs, dom = DOM;
+    if (demo) attrs = DEMO;
+    else {
+      const base = CONFIG.LAYER_URL.replace(/\/+$/, "");
+      const p = new URLSearchParams({ where: "SlotID IS NOT NULL", outFields: "*", orderByFields: "SlotID", returnGeometry: "false", resultRecordCount: "2000", f: "json" });
+      // ask for the labels and the records at the same time
+      const [meta, data] = await Promise.all([getJSON(base + "?f=json").catch(() => null), getJSON(base + "/query?" + p)]);
+      if (meta && meta.fields) {
+        dom = {};
+        meta.fields.forEach(f => { if (f.domain && f.domain.codedValues) { dom[f.name] = {}; f.domain.codedValues.forEach(cv => dom[f.name][String(cv.code)] = cv.name); } });
+      }
+      attrs = (data.features || []).map(f => f.attributes);
+      writeCache(attrs, dom);
+    }
+    applyData(attrs, dom);
+    S.loading = false; S.fresh = true;
+    setup();
+    $("updated").textContent = (demo ? "Demo data · " : "Updated ") + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  } catch (e) {
+    S.loading = false;
+    if (TALKS.length) { render(); $("updated").textContent = "Showing the last saved copy (couldn't refresh)"; }
+    else $("main").innerHTML = `<div class="err">The agenda couldn't load (${esc(e.message)}). Please refresh the page in a moment.</div>`;
+  }
+}
+
+function setup() {
+  document.title = CONFIG.TITLE; $("title").textContent = CONFIG.TITLE; $("venue").textContent = CONFIG.VENUE;
+  const rooms = DOM.RoomSelectionAdmin || FALLBACK.RoomSelectionAdmin;
+  ROOMCOLS = Object.keys(rooms).filter(c => c !== CONFIG.KEYNOTE_ROOM && !/-/.test(rooms[c])).sort();
+  const days = Object.keys(CONFIG.DAYS);
+  if (!S.day || !days.includes(S.day)) S.day = todayCode() || days[0];
+  $("days").innerHTML = days.map(d => `<button type="button" data-d="${d}" aria-pressed="${d === S.day}">${esc(dayLabel(d))}</button>`).join("");
+  $("days").querySelectorAll("button").forEach(b => b.onclick = () => { S.day = b.dataset.d; S.sel = null; syncButtons(); render(); });
+  const usedRooms = [...new Set(TALKS.map(t => t.room))].sort();
+  $("room").innerHTML = `<option value="">All rooms</option>` + usedRooms.map(r => `<option value="${r}">${esc(roomName(r))}</option>`).join("");
+  $("room").value = usedRooms.includes(S.room) ? S.room : "";
+  const tracks = [...new Set(TALKS.map(t => t.track))].sort();
+  $("track").innerHTML = `<option value="">All tracks</option>` + tracks.map(t => `<option>${esc(t)}</option>`).join("");
+  $("track").value = tracks.includes(S.track) ? S.track : "";
+  render();
+}
+
+function roomName(code) {
+  if (code === CONFIG.KEYNOTE_ROOM) return "Multi Purpose Room (MPR)";
+  const l = lab("RoomSelectionAdmin", code);
+  return /-/.test(l) ? "Rooms " + l : "Room " + l;
+}
+const colors = t => t.trackKey === "__other" ? CONFIG.OTHER_COLOR : CONFIG.TRACK_COLORS[t.trackKey];
+function match(t) {
+  const q = S.q.trim().toLowerCase();
+  return (!S.room || t.room === S.room) && (!S.track || t.track === S.track) &&
+    (!q || [t.title, t.presenter, t.affil, t.co.map(c => c.n).join(" ")].join(" ").toLowerCase().includes(q));
+}
+function pills(t) {
+  const c = colors(t);
+  return `<div class="pills"><span class="pill" style="--pb:${c[2]};--pc:${c[1]}">${esc(t.track)}</span>${t.online ? '<span class="pill on">Online</span>' : ""}</div>`;
+}
+const names = t => [t.presenter, ...t.co.map(c => c.n)].join(", ");
+function card(t, extra = "") {
+  return `<button type="button" class="card ${extra}${S.sel === t.id ? " sel" : ""}" data-id="${esc(t.id)}" style="--tc:${colors(t)[0]}">
+    <div class="tm"><span>${esc(t.time.text)}</span>${t.key ? "" : `<span class="rm">${esc(roomName(t.room))}</span>`}</div>
+    <div class="t">${esc(t.title)}</div><div class="p">${esc(names(t))}</div>${pills(t)}</button>`;
+}
+
+/* ---------- timeline: blocks + fixed events + automatic breaks ---------- */
+function timeline(day) {
+  const blocks = (CONFIG.DAY_BLOCKS[day] || []).map(c => ({ kind: "block", c, r: range(lab("TimeMainSelectionAdmin", c)) }))
+    .sort((a, b) => a.r.s - b.r.s);
+  const items = blocks.map(b => ({ ...b, s: b.r.s, e: b.r.e, ord: 1 }));
+  for (let i = 0; i < blocks.length - 1; i++) {
+    const a = blocks[i].r.e, b = blocks[i + 1].r.s;
+    if (b - a >= 5) items.push({ kind: "break", s: a, e: b, ord: 0 });
+  }
+  CONFIG.EVENTS.filter(ev => ev.day === day).forEach(ev => { const r = range(ev.time); items.push({ kind: "event", ev, s: r.s, e: r.e, text: r.text, ord: 0 }); });
+  return items.sort((x, y) => x.s - y.s || x.ord - y.ord);
+}
+function eventHTML(it, day) {
+  const now = isNow(day, it.s, it.e ?? (it.kind === "break" ? it.e : it.s + 30));
+  if (it.kind === "break") return `<div class="ev brk${now ? " now" : ""}"><b>${esc(CONFIG.BREAK.title)}</b><span class="w">${esc(CONFIG.BREAK.where)}</span></div>`;
+  const ev = it.ev;
+  return `<div class="ev ${esc(ev.type || "info")}${now ? " now" : ""}"><b>${esc(ev.title)}</b>${ev.where ? `<span class="w">${esc(ev.where)}</span>` : ""}${ev.note ? `<span class="n">${esc(ev.note)}</span>` : ""}</div>`;
+}
+function timeCell(it, day, small) {
+  const now = isNow(day, it.s, it.e);
+  const txt = it.kind === "block" ? it.r.text : it.kind === "break" ? textRange(it.s, it.e) : it.text;
+  const big = fmtMin(it.s);
+  return `<div class="gtime${small ? " small" : ""}${now ? " now" : ""}" ${now ? 'data-now="1"' : ""}>${small ? esc(txt) : `<b>${big}</b>${esc(txt)}`}${now ? '<br><span class="nowtag">Now</span>' : ""}</div>`;
+}
+function allDayHTML(day) {
+  const a = CONFIG.ALL_DAY[day] || [];
+  return a.length ? `<div class="allday"><span class="lbl">All day</span>${a.map(x => `<span class="chip"><b>${esc(x.title)}</b> · ${esc(x.where)}</span>`).join("")}</div>` : "";
+}
+
+const sessionNotes = (day, blk) => (CONFIG.SESSION_NOTES || []).filter(x => x.day === day && x.block === blk);
+function notesHTML(day, blk) {
+  return sessionNotes(day, blk).map(x => `<div class="snote"><b>${esc(x.text)}</b>${x.note ? " · " + esc(x.note) : ""}</div>`).join("");
+}
+function nowBanner(day) {
+  if (!CONFIG.DAYS[day] || CONFIG.DAYS[day].date !== nowET().date) return "";
+  const n = nowET().mins, tl = timeline(day);
+  const cur = tl.filter(it => n >= it.s && n < (it.e ?? it.s + 30));
+  const nxt = tl.find(it => it.s > n && it.kind !== "break");
+  const name = it => it.kind === "block" ? `sessions ${it.r.text}` : it.kind === "break" ? `${CONFIG.BREAK.title} (${textRange(it.s, it.e)})` : `${it.ev.title} (${it.text})`;
+  const txt = cur.length ? `Happening now: ${cur.map(name).join(" · ")}` : nxt ? `Up next: ${name(nxt)}` : "That's a wrap for today. Thanks for coming!";
+  return `<div class="nowbar"><b>${esc(fmtMin(n))} ${ap(n)}</b><span>${esc(txt)}</span>${cur.length ? '<button type="button" id="jumpnow">Jump to it</button>' : ""}</div>`;
+}
+function renderGrid(day, dayTalks, shown) {
+  const n = ROOMCOLS.length;
+  const cols = `grid-template-columns:96px repeat(${n},minmax(0,1fr))`;
+  let h = `<div class="gridwrap"><div class="ghrow" style="${cols}"><div></div>` +
+    ROOMCOLS.map(r => `<div class="ghead">${esc(roomName(r))}</div>`).join("") + `</div><div class="grid" style="${cols}">`;
+  timeline(day).forEach(it => {
+    if (it.kind !== "block") { h += timeCell(it, day, it.kind === "break") + `<div style="grid-column:span ${n}">${eventHTML(it, day)}</div>`; return; }
+    const inBlock = dayTalks.filter(t => t.blk === it.c);
+    const vis = inBlock.filter(t => shown.has(t.id)).sort((x, y) => x.time.s - y.time.s);
+    h += timeCell(it, day);
+    if (S.loading && !TALKS.length && KEYBLOCKS[day] && KEYBLOCKS[day].includes(it.c)) { h += `<div style="grid-column:span ${n}" class="krow"><div class="kh">Keynote · ${esc(roomName(CONFIG.KEYNOTE_ROOM))}</div>${notesHTML(day, it.c)}<div class="skel"></div></div>`; return; }
+    if (inBlock.some(t => t.key)) {
+      const ks = vis.filter(t => t.key);
+      h += `<div style="grid-column:span ${n}" class="krow"><div class="kh">Keynote${inBlock.filter(t => t.key).length > 1 ? "s" : ""} · ${esc(roomName(CONFIG.KEYNOTE_ROOM))} · no other sessions</div>${notesHTML(day, it.c)}
+        <div class="kcards">${ks.map(t => card(t)).join("") || '<div class="foot">Hidden by your filters</div>'}</div></div>`;
+      return;
+    }
+    let col = 0;
+    while (col < n) {
+      const code = ROOMCOLS[col];
+      const combo = inBlock.find(t => { const m = lab("RoomSelectionAdmin", t.room).split("-"); return m.length === 2 && m[0] === code; });
+      if (combo) {
+        const span = Math.max(col, ROOMCOLS.indexOf(lab("RoomSelectionAdmin", combo.room).split("-")[1])) - col + 1;
+        h += `<div class="cell" style="grid-column:span ${span}">${vis.filter(t => t.room === combo.room).map(t => card(t)).join("")}</div>`;
+        col += span; continue;
+      }
+      const all = inBlock.filter(t => t.room === code);
+      if (!all.length) { h += (S.loading && !TALKS.length) ? `<div class="cell"><div class="skel"></div></div>` : `<div class="cell"><div class="open">Open</div></div>`; col++; continue; }
+      const full = all.find(t => t.sub === "0000");
+      if (full) { h += `<div class="cell">${shown.has(full.id) ? card(full, "full") : ""}</div>`; col++; continue; }
+      // 20-minute talks: always show both halves; an unbooked half shows as Open
+      h += `<div class="cell">` + [it.c + "01", it.c + "02"].map(sc => {
+        const t = all.find(x => x.sub === sc);
+        if (!t) return `<div class="open half">Open · ${esc(range(lab("TimeSubSelectionAdmin", sc)).text)}</div>`;
+        return shown.has(t.id) ? card(t, "half") : `<div class="half"></div>`;
+      }).join("") + `</div>`;
+      col++;
+    }
+  });
+  return h + `</div></div>`;
+}
+
+function renderList(day, dayTalks, shown) {
+  let h = "";
+  timeline(day).forEach(it => {
+    const now = isNow(day, it.s, it.e);
+    if (it.kind !== "block") {
+      const txt = it.kind === "break" ? textRange(it.s, it.e) : it.text;
+      h += `<div class="lev"${now ? ' data-now="1"' : ""}><h3 class="${now ? "now" : ""}" style="font-size:13px;margin:0 0 4px;color:${now ? "var(--now)" : "var(--muted)"};font-weight:600">${esc(txt)}${now ? ' <span class="nowtag">Now</span>' : ""}</h3>${eventHTML(it, day)}</div>`;
+      return;
+    }
+    const ts = dayTalks.filter(t => t.blk === it.c && shown.has(t.id)).sort((x, y) => x.time.s - y.time.s || x.room.localeCompare(y.room));
+    if (!ts.length) return;
+    h += `<div class="lgroup"${now ? ' data-now="1"' : ""}><h3 class="${now ? "now" : ""}">${esc(it.r.text)}${now ? ' <span class="nowtag">Now</span>' : ""}</h3>` + (notesHTML(day, it.c) ? `<div style="margin-bottom:6px">${notesHTML(day, it.c)}</div>` : "") + ts.map(t => `<button type="button" class="lrow${t.key ? " key" : ""}${S.sel === t.id ? " sel" : ""}" data-id="${esc(t.id)}" style="--tc:${colors(t)[0]}">
+      <div class="meta"><b>${esc(t.time.text)}</b>${esc(roomName(t.room))}</div>
+      <div>${t.key ? '<span class="kbadge">Keynote</span>' : ""}<div class="t">${esc(t.title)}</div><div class="p">${esc(names(t))} · ${esc(t.affil)}</div>${pills(t)}</div></button>`).join("") + `</div>`;
+  });
+  return h;
+}
+
+function render() {
+  const dayTalks = TALKS.filter(t => t.day === S.day);
+  const shown = new Set(dayTalks.filter(match).map(t => t.id));
+  let h = "";
+  if (!CONFIG.LAYER_URL) h += `<div class="note">Demo mode: showing a snapshot. Set LAYER_URL in the configuration to read the live feature service.</div>`;
+  if (S.loading && !S.fresh) h += `<div class="loadbar"><span class="spin"></span>${TALKS.length ? "Checking for schedule updates…" : "Loading the latest sessions…"}</div>`;
+  else if (CONFIG.LAYER_URL && !TALKS.length) h += `<div class="note">The feature service returned no scheduled presentations. If the view has records, check that the public view lets anonymous users see all records (not only their own).</div>`;
+  h += nowBanner(S.day);
+  h += allDayHTML(S.day);
+  h += S.view === "grid" ? renderGrid(S.day, dayTalks, shown) : renderList(S.day, dayTalks, shown);
+  h += `<div class="legend">` + Object.entries(CONFIG.TRACK_COLORS).map(([k, c]) => `<span><i style="background:${c[0]}"></i>${esc(k)}</span>`).join("") +
+    `<span><i style="background:${CONFIG.OTHER_COLOR[0]}"></i>Other</span><span><i style="background:var(--accent)"></i>Keynote</span>` +
+    (S.view === "grid" ? `<span><i style="border:1px dashed var(--line2)"></i>Open slot</span>` : "") + `</div>`;
+  $("main").innerHTML = h;
+  document.documentElement.style.setProperty("--barh", document.querySelector(".bar").offsetHeight + "px");
+  $("main").querySelectorAll("[data-id]").forEach(el => el.onclick = () => select(el.dataset.id));
+  const jb = $("jumpnow"); if (jb) jb.onclick = () => { const el = $("main").querySelector("[data-now]"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); };
+  renderDetails();
+  const keepNow = nowParam ? "&now=" + nowParam : "";
+  history.replaceState(null, "", location.pathname + location.search + "#day=" + S.day + "&view=" + S.view + keepNow);
+  const nowEl = $("main").querySelector("[data-now]");
+  if (nowEl && !S.scrolled) { S.scrolled = true; nowEl.scrollIntoView({ block: "center" }); }
+}
+
+function select(id) { S.sel = id; render(); $("panel").classList.add("openp"); }
+function renderDetails() {
+  const t = TALKS.find(x => x.id === S.sel);
+  if (!t) { $("det").innerHTML = `<div class="empty">Select a presentation to see its abstract and presenters.</div>`; return; }
+  const who = [`<p><b>${esc(t.presenter)}</b>${t.affil ? " · " + esc(t.affil) : ""}</p>`, ...t.co.map(c => `<p>${esc(c.n)}${c.a ? " · " + esc(c.a) : ""}</p>`)].join("");
+  $("det").innerHTML = `${t.key ? '<span class="kbadge">Keynote</span>' : ""}
+    <div class="when">${esc(dayLabel(t.day))} · ${esc(t.time.text)} · ${esc(roomName(t.room))}</div>
+    <h2>${esc(t.title)}</h2>${who}${pills(t)}
+    ${t.abstract ? `<h4>Abstract</h4><p>${esc(t.abstract)}</p>` : ""}
+    ${t.bio ? `<h4>About the presenter</h4><p>${esc(t.bio)}</p>` : ""}`;
+}
+
+/* ---------- print: both days as tables, all talks, no filters ---------- */
+function buildPrint() {
+  const n = ROOMCOLS.length;
+  const pi = t => `<div class="pi"><div class="ptm">${esc(t.time.text)}${t.online ? " · Online" : ""}</div><b>${esc(t.title)}</b><div class="pm">${esc(names(t))}</div></div>`;
+  $("print").innerHTML = Object.keys(CONFIG.DAYS).map(day => {
+    const dt = TALKS.filter(t => t.day === day);
+    let rows = "";
+    timeline(day).forEach(it => {
+      if (it.kind === "break") { rows += `<tr class="b"><td class="tcol">${esc(textRange(it.s, it.e))}</td><td colspan="${n}">${esc(CONFIG.BREAK.title)} · ${esc(CONFIG.BREAK.where)}</td></tr>`; return; }
+      if (it.kind === "event") { const ev = it.ev; rows += `<tr class="e"><td class="tcol">${esc(it.text)}</td><td colspan="${n}"><b>${esc(ev.title)}</b>${ev.where ? " · " + esc(ev.where) : ""}${ev.note ? " — " + esc(ev.note) : ""}</td></tr>`; return; }
+      const inB = dt.filter(t => t.blk === it.c).sort((x, y) => x.time.s - y.time.s);
+      if (inB.some(t => t.key)) { rows += `<tr class="k"><td class="tcol">${esc(it.r.text)}</td><td colspan="${n}"><b>Keynote · ${esc(roomName(CONFIG.KEYNOTE_ROOM))}</b>${sessionNotes(day, it.c).map(x => `<div class="pi"><i>${esc(x.text)}</i></div>`).join("")}${inB.filter(t => t.key).map(pi).join("")}</td></tr>`; return; }
+      let tds = "", col = 0;
+      while (col < n) {
+        const code = ROOMCOLS[col];
+        const combo = inB.find(t => { const m = lab("RoomSelectionAdmin", t.room).split("-"); return m.length === 2 && m[0] === code; });
+        if (combo) { const span = Math.max(col, ROOMCOLS.indexOf(lab("RoomSelectionAdmin", combo.room).split("-")[1])) - col + 1; tds += `<td colspan="${span}">${inB.filter(t => t.room === combo.room).map(pi).join("")}</td>`; col += span; continue; }
+        const cs = inB.filter(t => t.room === code);
+        tds += cs.length ? `<td>${cs.map(pi).join("")}</td>` : `<td class="popen">Open</td>`; col++;
+      }
+      rows += `<tr><td class="tcol">${esc(it.r.text)}</td>${tds}</tr>`;
+    });
+    const ad = (CONFIG.ALL_DAY[day] || []).map(x => `${esc(x.title)} (${esc(x.where)})`).join(" · ");
+    return `<section class="pday"><h2>${esc(dayLabel(day))}</h2>${ad ? `<p class="pad">All day: ${ad}</p>` : ""}
+      <table class="pt"><thead><tr><th style="width:1.08in">Time</th>${ROOMCOLS.map(r => `<th>${esc(roomName(r))}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></section>`;
+  }).join("");
+}
+
+function syncButtons() {
+  $("days").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === S.day));
+  $("views").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S.view));
+}
+
+const hp = new URLSearchParams(location.hash.slice(1));
+S.day = hp.get("day"); S.view = hp.get("view") || (window.innerWidth < 760 ? "list" : "grid");
+syncButtons();
+$("views").querySelectorAll("button").forEach(b => b.onclick = () => { S.view = b.dataset.v; syncButtons(); render(); });
+$("room").onchange = e => { S.room = e.target.value; render(); };
+$("track").onchange = e => { S.track = e.target.value; render(); };
+$("q").oninput = e => { S.q = e.target.value; render(); };
+$("close").onclick = () => $("panel").classList.remove("openp");
+$("refresh").onclick = load;
+if (CONFIG.PRINT_PDF_URL) { $("pdfbtn").href = CONFIG.PRINT_PDF_URL; $("pdfbtn").style.display = "inline-block"; }
+$("printbtn").onclick = () => { buildPrint(); window.print(); };
+window.addEventListener("beforeprint", buildPrint);
+window.addEventListener("resize", () => document.documentElement.style.setProperty("--barh", document.querySelector(".bar").offsetHeight + "px"));
+load();
+if (CONFIG.LAYER_URL && CONFIG.REFRESH_MINUTES > 0) setInterval(load, CONFIG.REFRESH_MINUTES * 60000);
+setInterval(() => { if (todayCode()) render(); }, 60000);   // keep the "Now" marker current
+</script>
+</body>
+</html>
