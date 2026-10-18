@@ -113,6 +113,9 @@ input[type=search]{flex:1;min-width:180px}
 .panel h4{font-size:13px;margin:14px 0 4px;color:var(--muted);font-weight:600}
 .panel p{margin:0;font-size:14px;white-space:pre-line}
 .panel .close{display:none}
+.panel .rate{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;padding:8px 14px}
+.panel .rate:hover{filter:brightness(.93)}
+.pbtn.evalbtn{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .kbadge{display:inline-block;font-size:11px;font-weight:600;color:#fff;background:var(--accent);border-radius:999px;padding:1px 8px;margin-bottom:4px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:14px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
@@ -216,6 +219,7 @@ input[type=search]{flex:1;min-width:180px}
   <input type="search" id="q" placeholder="Search title, presenter, or organization" aria-label="Search">
   <button type="button" class="pbtn" id="printbtn">Print</button>
   <a class="pbtn" id="pdfbtn" target="_blank" rel="noopener" style="display:none;text-decoration:none;color:inherit">Printed program (PDF)</a>
+  <a class="pbtn evalbtn" id="evalbtn" target="_blank" rel="noopener" style="display:none;text-decoration:none">Evaluate the conference</a>
 </div></div>
 <div class="wrap" id="wrap">
   <main id="main" aria-live="polite"><div class="loadbar"><span class="spin"></span>Loading the latest sessions…</div></main>
@@ -271,6 +275,9 @@ const CONFIG = {
   // Optional: link to the formatted printed program (e.g. the PDF exported from the Excel agenda workbook).
   // When set, a "Printed program (PDF)" button appears next to Print.
   PRINT_PDF_URL: "",
+  // Evaluation (Survey123) share link. When set, each presentation's details panel gets a "Rate this presentation"
+  // button (opens the form with that presentation preselected) and the toolbar gets "Evaluate the conference".
+  EVAL_URL: "https://survey123.arcgis.com/share/976c48e9e70b4a59b4f0d8e91db96cd8",
   // Printed program (Print button): header text and the address shown under the QR code
   PRINT: { EYEBROW: "20th Annual", NAME: "Western PA GIS Conference", SUB: "Conference agenda", URL_TEXT: "wpagisconf.github.io/agenda" },
 
@@ -297,7 +304,7 @@ const PRINT_ASSETS = {"LOGO": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgg
 
 const nowParam = (location.search + location.hash).match(/now=([\dT:-]+)/)?.[1] || "";
 const S = { day: null, view: "grid", room: "", track: "", q: "", sel: null, scrolled: false };
-let TALKS = [], DOM = {}, ROOMCOLS = [];
+let TALKS = [], DOM = {}, ROOMCOLS = [], DATA_STAMP = 0, PRINT_STAMP = "";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -362,7 +369,7 @@ async function getJSON(url) {
 const CACHE_KEY = "wpagis-agenda-cache-v1";
 const KEYBLOCKS = { "01": ["01", "04"] };   // blocks shown as keynote bands while loading
 function applyData(attrs, dom) {
-  DOM = dom || {};
+  DOM = dom || {}; DATA_STAMP++;
   TALKS = attrs.map(norm).filter(t => t && (CONFIG.DAY_BLOCKS[t.day] || []).includes(t.blk)).sort((a, b) => a.slot.localeCompare(b.slot));
 }
 function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); } catch (e) { return null; } }
@@ -393,6 +400,7 @@ async function load() {
     }
     applyData(attrs, dom);
     S.loading = false; S.fresh = true;
+    setTimeout(preparePrint, 300);
     setup();
     $("updated").textContent = (demo ? "Demo data · " : "Updated ") + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   } catch (e) {
@@ -568,6 +576,11 @@ function render() {
 }
 
 function select(id) { S.sel = id; render(); $("panel").classList.add("openp"); }
+function evalLink(slot) {
+  const u = CONFIG.EVAL_URL; if (!u) return "";
+  const q = "field:entry_source=agenda" + (slot ? "&field:start_slot=" + encodeURIComponent(slot) : "");
+  return u + (u.includes("?") ? "&" : "?") + q;
+}
 function renderDetails() {
   const t = TALKS.find(x => x.id === S.sel);
   if (!t) { $("det").innerHTML = `<div class="empty">Select a presentation to see its abstract and presenters.</div>`; return; }
@@ -575,6 +588,7 @@ function renderDetails() {
   $("det").innerHTML = `${t.key ? '<span class="kbadge">Keynote</span>' : ""}
     <div class="when">${esc(dayLabel(t.day))} · ${esc(t.time.text)} · ${esc(roomName(t.room))}</div>
     <h2>${esc(t.title)}</h2>${who}${pills(t)}
+    ${CONFIG.EVAL_URL ? `<a class="rate" href="${esc(evalLink(t.slot))}" target="_blank" rel="noopener">Rate this presentation</a>` : ""}
     ${t.abstract ? `<h4>Abstract</h4><p>${esc(t.abstract)}</p>` : ""}
     ${t.bio ? `<h4>About the presenter</h4><p>${esc(t.bio)}</p>` : ""}`;
 }
@@ -620,11 +634,11 @@ function printRows(day) {
 function printPage(day, rows, label) {
   const ad = (CONFIG.ALL_DAY[day] || []).map(x => `<span><b>${esc(x.title)}</b> · ${esc(x.where)}</span>`).join("");
   const P = CONFIG.PRINT || {};
-  return `<section class="pg"><div class="phd"><img src="${PRINT_ASSETS.LOGO}" alt=""><div><div class="eb">${esc(P.EYEBROW || "")}</div><div class="nm">${esc(P.NAME || CONFIG.TITLE)}</div><div class="vn">${esc(P.SUB || "Conference agenda")} · ${esc(CONFIG.VENUE)}</div></div></div>
+  return `<section class="pg"><div class="phd"><img src="${PRINT_ASSETS.LOGO}" alt="" decoding="sync"><div><div class="eb">${esc(P.EYEBROW || "")}</div><div class="nm">${esc(P.NAME || CONFIG.TITLE)}</div><div class="vn">${esc(P.SUB || "Conference agenda")} · ${esc(CONFIG.VENUE)}</div></div></div>
     <div class="pdy"><b>${esc(longDate(day))}</b><span>${esc(label || "")}</span></div>
     <div class="pbody">${ad ? `<div class="pad"><i>All day</i>${ad}</div>` : ""}
     <table><colgroup><col style="width:.92in">${ROOMCOLS.map(() => "<col>").join("")}</colgroup><thead><tr><th>Time</th>${ROOMCOLS.map(r => `<th>${esc(roomName(r))}</th>`).join("")}</tr></thead><tbody>${rows.map(r => r.html).join("")}</tbody></table></div>
-    <div class="pft"><img src="${PRINT_ASSETS["QR" + day] || PRINT_ASSETS.QR01}" alt=""><div><div class="l1">Live agenda, updated regularly</div><div class="l2">${esc(P.URL_TEXT || location.host + location.pathname)}</div><div class="l3">Schedule subject to change · Printed ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div></div>
+    <div class="pft"><img src="${PRINT_ASSETS["QR" + day] || PRINT_ASSETS.QR01}" alt="" decoding="sync"><div><div class="l1">Live agenda, updated regularly</div><div class="l2">${esc(P.URL_TEXT || location.host + location.pathname)}</div><div class="l3">Schedule subject to change · Printed ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div></div>
     <div class="lg"><span><i style="background:#eaf2fb;border-color:#2c6db5"></i>In person</span><span><i style="background:#fdf0dc;border-color:#d4771f"></i>Online presenter</span><span><i style="background:#0e2a47;border-color:#f3b77a"></i>Keynote</span></div></div></section>`;
 }
 // largest text scale (between MIN and MAX) at which this page's table fits; 0 if it doesn't fit even at MIN
@@ -677,6 +691,7 @@ function buildPrint() {
     if (body.scrollHeight > body.clientHeight + 1) el.style.setProperty("--g", Math.max(1, g - 0.1));
   });
   box.classList.remove("measure");
+  PRINT_STAMP = DATA_STAMP + "|" + new Date().toDateString();
 }
 
 function syncButtons() {
@@ -693,10 +708,21 @@ $("track").onchange = e => { S.track = e.target.value; render(); };
 $("q").oninput = e => { S.q = e.target.value; render(); };
 $("close").onclick = () => $("panel").classList.remove("openp");
 $("refresh").onclick = load;
+if (CONFIG.EVAL_URL) { $("evalbtn").href = evalLink(""); $("evalbtn").style.display = "inline-block"; }
 if (CONFIG.PRINT_PDF_URL) { $("pdfbtn").href = CONFIG.PRINT_PDF_URL; $("pdfbtn").style.display = "inline-block"; }
-$("printbtn").onclick = async () => { try { await Promise.all(["400", "600", "700"].map(w => document.fonts.load(w + " 10pt Poppins"))); } catch (e) {} buildPrint(); window.print(); };
+// The printed pages are built ahead of time (after the data loads) so the logo and QR images are ready
+// when the print window opens; they are rebuilt only when the data or the date has changed.
+const fontsReady = () => Promise.all(["400", "600", "700"].map(w => document.fonts.load(w + " 10pt Poppins"))).catch(() => {});
+const printIsStale = () => PRINT_STAMP !== DATA_STAMP + "|" + new Date().toDateString();
+async function preparePrint() {
+  await fontsReady();
+  if (printIsStale()) buildPrint();
+  const imgs = [...$("print").querySelectorAll("img")];
+  await Promise.race([Promise.all(imgs.map(i => i.decode().catch(() => {}))), new Promise(r => setTimeout(r, 2500))]);
+}
+$("printbtn").onclick = async () => { $("printbtn").disabled = true; try { await preparePrint(); } finally { $("printbtn").disabled = false; } window.print(); };
 if (document.fonts) ["400", "600", "700"].forEach(w => document.fonts.load(w + " 10pt Poppins").catch(() => {}));
-window.addEventListener("beforeprint", buildPrint);
+window.addEventListener("beforeprint", () => { if (printIsStale()) buildPrint(); });   // Ctrl+P
 window.addEventListener("resize", () => document.documentElement.style.setProperty("--barh", document.querySelector(".bar").offsetHeight + "px"));
 load();
 if (CONFIG.LAYER_URL && CONFIG.REFRESH_MINUTES > 0) setInterval(load, CONFIG.REFRESH_MINUTES * 60000);
